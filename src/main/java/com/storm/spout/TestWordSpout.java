@@ -33,5 +33,4 @@ public class TestWordSpout extends BaseRichSpout {
 	public void declareOutputFields(OutputFieldsDeclarer arg0) {
 		arg0.declare(new Fields("word"));
 	}
-
 }
