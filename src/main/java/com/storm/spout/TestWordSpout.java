@@ -21,7 +21,6 @@ public class TestWordSpout extends BaseRichSpout {
 		final Random rand = new Random();
 		String word = words[rand.nextInt(words.length)];
 		_collector.emit(new Values(word));
-
 	}
 
 	@Override

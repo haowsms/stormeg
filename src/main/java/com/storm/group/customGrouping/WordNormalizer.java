@@ -1,0 +1,66 @@
+package com.storm.group.customGrouping;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+
+import backtype.storm.task.TopologyContext;
+import backtype.storm.topology.BasicOutputCollector;
+import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.topology.base.BaseBasicBolt;
+import backtype.storm.tuple.Fields;
+import backtype.storm.tuple.Tuple;
+import backtype.storm.tuple.Values;
+
+public class WordNormalizer extends BaseBasicBolt {
+	private List<Integer> numCounterTasks;
+
+	@Override
+	public void prepare(Map stormConf, TopologyContext context) {
+		// TODO Auto-generated method stub
+		  this.numCounterTasks = context.getComponentTasks("word-counter-direct");
+			System.out.println("prepare 'word-counter-direct' task=" + this.numCounterTasks);
+	}
+	
+	public void cleanup() {
+		System.out.println("将一行文本切割成单词，并封装collector中发射出去 ---完毕！");
+	}
+
+	/**
+	 * 接受的参数是WordReader发出的句子，即input的内容是句子 execute方法，将句子切割形成的单词发出
+	 */
+	public void execute(Tuple input, BasicOutputCollector collector) {
+		System.out.println("WordNormalizer-execute object: " + collector + " this=" + this);
+		String sentence = input.getString(0);
+		String[] words = sentence.split(" ");
+		// System.out.println("WordNormalizer类 收到一条数据，这条数据是： "+ sentence);
+		for (String word : words) {
+			word = word.trim();
+			if (!word.isEmpty()) {
+				word = word.toLowerCase();
+				int index = this.numCounterTasks.get(getWordCountIndex(word));
+				System.out.println("WordNormalizer类 收到一条数据，这条数据是： " + sentence + "数据正在被切割，切割出来的单词是 " + word + "  发送的index=" + index);
+//				collector.emit(new Values(word, "new1>>>" + System.currentTimeMillis() + ":" + Math.random()));
+				collector.emitDirect(index,new Values(word, "new1>>>" + System.currentTimeMillis() + ":" + Math.random()));
+			}
+		}
+	}
+
+	/**
+	 * 定义字段id，该id在简单模式下没有用处，但在按照字段分组的模式下有很大的用处。
+	 * 该declarer变量有很大作用，我们还可以调用declarer.declareStream();来定义stramId，
+	 * 该id可以用来定义更加复杂的流拓扑结构
+	 */
+	public void declareOutputFields(OutputFieldsDeclarer declarer) {
+		declarer.declare(new Fields("word", "new"));
+	}
+	
+	public Integer getWordCountIndex(String word) {
+        word = word.trim().toUpperCase();
+        if(word.isEmpty()){
+            return 0;
+        }else{
+            return word.charAt(0) % numCounterTasks.size();
+        }
+    }
+}
